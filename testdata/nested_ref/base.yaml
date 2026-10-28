@@ -1,0 +1,49 @@
+openapi: 3.0.3
+info: {title: T, version: 1.0.0}
+paths:
+  /orders:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Order"}
+components:
+  schemas:
+    Audit:
+      type: object
+      properties:
+        createdAt: {type: string}
+    Category:
+      type: object
+      properties:
+        name: {type: string}
+        children:
+          type: array
+          items: {$ref: "#/components/schemas/Category"}
+    Order:
+      allOf:
+        - $ref: "#/components/schemas/Audit"
+        - type: object
+          required: [id]
+          properties:
+            id: {type: integer}
+            address:
+              type: object
+              properties:
+                city: {type: string}
+                zip: {type: string}
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  sku: {type: string}
+                  qty: {type: integer}
+            tags:
+              type: array
+              items: {type: string}
+            category: {$ref: "#/components/schemas/Category"}

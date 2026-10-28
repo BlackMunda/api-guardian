@@ -1,0 +1,26 @@
+openapi: 3.0.3
+info: {title: T, version: 1.0.0}
+paths:
+  /users:
+    get:
+      parameters:
+        - {name: limit, in: query, required: false, schema: {type: integer}}
+        - {name: tenant, in: query, required: true, schema: {type: string}}
+      responses:
+        "200": {description: OK}
+  /orders:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product, quantity, currency]
+              properties:
+                product: {type: string}
+                quantity: {type: integer}
+                currency: {type: string}
+                note: {type: string}
+      responses:
+        "201": {description: Created}
