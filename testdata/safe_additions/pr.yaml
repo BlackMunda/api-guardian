@@ -1,0 +1,35 @@
+openapi: 3.0.3
+info: {title: T, version: 1.0.0}
+paths:
+  /users:
+    get:
+      parameters:
+        - {name: page, in: query, schema: {type: integer}}
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id]
+                properties:
+                  id: {type: integer}
+                  nickname: {type: string}
+                  tags: {type: array, items: {type: string}}
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: {type: string}
+                bio: {type: string}
+      responses:
+        "201": {description: Created}
+  /products:
+    get:
+      responses:
+        "200": {description: OK}
