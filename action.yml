@@ -1,15 +1,37 @@
 name: Guardian API Check
 description: >
-  Detects breaking changes in an OpenAPI spec by comparing the pull request's
-  version against its base branch, and posts the result as a PR comment.
+  Detects breaking changes in an API's OpenAPI spec by comparing the pull
+  request's version against its base branch, and posts the result as a PR
+  comment. The spec can be a file in the repo, or generated from code by a
+  command.
 branding:
   icon: shield
   color: blue
 
 inputs:
   spec-path:
-    description: Path to the OpenAPI file, relative to the repository root.
-    required: true
+    description: >
+      FILE MODE. Path to a committed OpenAPI file, relative to the repository
+      root. Use this or spec-command, not both.
+    required: false
+    default: ""
+  spec-command:
+    description: >
+      GENERATE MODE. A command that prints the OpenAPI spec to stdout, e.g.
+      "go run ./cmd/api openapi". It is run on both the base branch and the PR,
+      so the spec always matches the code. Use this or spec-path, not both.
+    required: false
+    default: ""
+  working-directory:
+    description: "Generate mode: the directory (relative to the repository root) to run spec-command in."
+    required: false
+    default: "."
+  name:
+    description: >
+      Name for this check. Give each check a different name when several run on
+      one PR (for example two APIs), so each keeps its own comment.
+    required: false
+    default: ""
   base-ref:
     description: Git ref to compare against. Defaults to the pull request's base commit.
     required: false
@@ -19,7 +41,7 @@ inputs:
     required: false
     default: ${{ github.token }}
   go-version:
-    description: Go version used to build Guardian.
+    description: Go version, used to build Guardian (and available to spec-command).
     required: false
     default: "1.22"
 
@@ -36,31 +58,38 @@ runs:
       working-directory: ${{ github.action_path }}
       run: go build -o "$RUNNER_TEMP/guardian" ./cmd/guardian
 
-    - name: Get the base version of the spec
-      id: base
+    - name: Prepare the base and PR specs
+      id: prepare
       shell: bash
       env:
         ACTION_PATH: ${{ github.action_path }}
+        WORKSPACE: ${{ github.workspace }}
+        OUT_DIR: ${{ runner.temp }}/guardian-specs
         SPEC_PATH: ${{ inputs.spec-path }}
+        SPEC_COMMAND: ${{ inputs.spec-command }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
         BASE_REF: ${{ inputs.base-ref != '' && inputs.base-ref || github.event.pull_request.base.sha }}
       run: |
         set +e
-        "$ACTION_PATH/scripts/base-spec.sh" "$BASE_REF" "$SPEC_PATH" "$RUNNER_TEMP/guardian-base.yaml"
+        "$ACTION_PATH/scripts/prepare-specs.sh"
         code=$?
         set -e
         if [ "$code" -eq 3 ]; then
-          # The spec is new in this PR: nothing to compare, so skip quietly.
+          # The spec/API is new in this PR: nothing to compare against, so skip quietly.
           echo "skip=true" >> "$GITHUB_OUTPUT"
           exit 0
         fi
         exit "$code"
 
     - name: Compare specs and comment on the PR
-      if: steps.base.outputs.skip != 'true'
+      if: steps.prepare.outputs.skip != 'true'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
-        SPEC_PATH: ${{ inputs.spec-path }}
+        OUT_DIR: ${{ runner.temp }}/guardian-specs
+        CHECK_NAME: ${{ inputs.name }}
       run: |
+        args=()
+        if [ -n "$CHECK_NAME" ]; then args+=(--name "$CHECK_NAME"); fi
         # Exit code 1 (breaking changes found) fails this step, and so the check.
-        "$RUNNER_TEMP/guardian" comment "$RUNNER_TEMP/guardian-base.yaml" "$SPEC_PATH"
+        "$RUNNER_TEMP/guardian" comment ${args[@]+"${args[@]}"} "$OUT_DIR/base.yaml" "$OUT_DIR/pr.yaml"
