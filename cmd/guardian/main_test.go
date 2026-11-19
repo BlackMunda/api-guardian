@@ -42,3 +42,22 @@ func TestJSONOutput(t *testing.T) {
 		}
 	}
 }
+
+func TestMarkdownFormat(t *testing.T) {
+	var out, errb bytes.Buffer
+	code := run([]string{"diff", "--format", "markdown",
+		"../../testdata/demo/base.yaml", "../../testdata/demo/pr.yaml"}, &out, &errb)
+	if code != 1 {
+		t.Fatalf("exit code = %d, want 1", code)
+	}
+	if !strings.HasPrefix(out.String(), "<!-- guardian-report -->") || !strings.Contains(out.String(), "❌ 3 breaking changes") {
+		t.Errorf("unexpected markdown:\n%s", out.String())
+	}
+}
+
+func TestUnknownCommand(t *testing.T) {
+	var out, errb bytes.Buffer
+	if code := run([]string{"frobnicate"}, &out, &errb); code != 2 {
+		t.Errorf("exit code = %d, want 2", code)
+	}
+}
