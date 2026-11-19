@@ -13,13 +13,44 @@ import (
 // comment instead of posting a new one each time.
 const Marker = "<!-- guardian-report -->"
 
+// MarkerFor returns the marker for a named check. A repository can run
+// several Guardian checks on one PR (say, two APIs); giving each its own name
+// gives each its own comment, so they do not overwrite one another.
+// An empty name returns the plain Marker.
+func MarkerFor(name string) string {
+	name = sanitizeName(name)
+	if name == "" {
+		return Marker
+	}
+	return "<!-- guardian-report:" + name + " -->"
+}
+
+// sanitizeName keeps only letters, digits, '.', '_' and '-' (spaces become
+// '-'). This guarantees a name can never break out of the HTML comment.
+func sanitizeName(name string) string {
+	var b strings.Builder
+	for _, r := range strings.TrimSpace(name) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '.', r == '_', r == '-':
+			b.WriteRune(r)
+		case r == ' ':
+			b.WriteRune('-')
+		}
+	}
+	return b.String()
+}
+
 // maxRows keeps the comment well below GitHub's 65,536-character limit.
 const maxRows = 50
 
 // Markdown renders the report as a GitHub-flavoured Markdown PR comment.
 // Breaking changes are shown in a table with the reason; safe changes are
 // tucked into a collapsed <details> block.
-func Markdown(changes []diff.Change) string {
+func Markdown(changes []diff.Change) string { return MarkdownFor(changes, "") }
+
+// MarkdownFor is Markdown for a named check (see MarkerFor).
+func MarkdownFor(changes []diff.Change, name string) string {
+	name = sanitizeName(name)
 	var breaking, safe []diff.Change
 	for _, c := range changes {
 		if c.Severity == diff.Breaking {
@@ -30,7 +61,11 @@ func Markdown(changes []diff.Change) string {
 	}
 
 	var b strings.Builder
-	b.WriteString(Marker + "\n## 🛡️ Guardian API check: ")
+	b.WriteString(MarkerFor(name) + "\n## 🛡️ Guardian API check")
+	if name != "" {
+		fmt.Fprintf(&b, " (%s)", name)
+	}
+	b.WriteString(": ")
 	switch {
 	case len(breaking) > 0:
 		fmt.Fprintf(&b, "❌ %s\n\n", plural(len(breaking), "breaking change"))
