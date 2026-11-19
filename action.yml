@@ -1,0 +1,66 @@
+name: Guardian API Check
+description: >
+  Detects breaking changes in an OpenAPI spec by comparing the pull request's
+  version against its base branch, and posts the result as a PR comment.
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  spec-path:
+    description: Path to the OpenAPI file, relative to the repository root.
+    required: true
+  base-ref:
+    description: Git ref to compare against. Defaults to the pull request's base commit.
+    required: false
+    default: ""
+  github-token:
+    description: Token used to post the PR comment (needs pull-requests write access).
+    required: false
+    default: ${{ github.token }}
+  go-version:
+    description: Go version used to build Guardian.
+    required: false
+    default: "1.22"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    - name: Build Guardian
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: go build -o "$RUNNER_TEMP/guardian" ./cmd/guardian
+
+    - name: Get the base version of the spec
+      id: base
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        SPEC_PATH: ${{ inputs.spec-path }}
+        BASE_REF: ${{ inputs.base-ref != '' && inputs.base-ref || github.event.pull_request.base.sha }}
+      run: |
+        set +e
+        "$ACTION_PATH/scripts/base-spec.sh" "$BASE_REF" "$SPEC_PATH" "$RUNNER_TEMP/guardian-base.yaml"
+        code=$?
+        set -e
+        if [ "$code" -eq 3 ]; then
+          # The spec is new in this PR: nothing to compare, so skip quietly.
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        exit "$code"
+
+    - name: Compare specs and comment on the PR
+      if: steps.base.outputs.skip != 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        SPEC_PATH: ${{ inputs.spec-path }}
+      run: |
+        # Exit code 1 (breaking changes found) fails this step, and so the check.
+        "$RUNNER_TEMP/guardian" comment "$RUNNER_TEMP/guardian-base.yaml" "$SPEC_PATH"
