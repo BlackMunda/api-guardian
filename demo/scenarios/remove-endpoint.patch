@@ -1,0 +1,22 @@
+diff --git a/internal/api/users.go b/internal/api/users.go
+index 57b27d1..5b23b0a 100644
+--- a/internal/api/users.go
++++ b/internal/api/users.go
+@@ -104,17 +104,4 @@ func registerUsers(api huma.API) {
+ 		db.next++
+ 		return &CreateUserOutput{Body: u}, nil
+ 	})
+-
+-	huma.Register(api, huma.Operation{
+-		OperationID: "delete-user", Method: http.MethodDelete, Path: "/users/{id}",
+-		Summary: "Delete a user", Tags: []string{"users"}, DefaultStatus: http.StatusNoContent,
+-	}, func(ctx context.Context, in *DeleteUserInput) (*DeleteUserOutput, error) {
+-		db.mu.Lock()
+-		defer db.mu.Unlock()
+-		if _, ok := db.byID[in.ID]; !ok {
+-			return nil, huma.Error404NotFound("user not found")
+-		}
+-		delete(db.byID, in.ID)
+-		return &DeleteUserOutput{}, nil
+-	})
+ }

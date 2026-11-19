@@ -1,0 +1,12 @@
+diff --git a/internal/api/orders.go b/internal/api/orders.go
+index 500163e..a5e3e68 100644
+--- a/internal/api/orders.go
++++ b/internal/api/orders.go
+@@ -27,6 +27,7 @@ type NewOrder struct {
+ 	UserID   int    `json:"userId" minimum:"1" doc:"The user placing the order"`
+ 	Product  string `json:"product" minLength:"1" doc:"What to order"`
+ 	Quantity int    `json:"quantity" minimum:"1" doc:"How many"`
++	Currency string `json:"currency" minLength:"3" maxLength:"3" doc:"ISO currency code"`
+ 	Note     string `json:"note,omitempty" doc:"Optional delivery note"`
+ }
+ 

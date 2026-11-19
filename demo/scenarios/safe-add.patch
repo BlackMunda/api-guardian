@@ -1,0 +1,12 @@
+diff --git a/internal/api/users.go b/internal/api/users.go
+index 57b27d1..5c6aa64 100644
+--- a/internal/api/users.go
++++ b/internal/api/users.go
+@@ -19,6 +19,7 @@ type User struct {
+ 	Name  string `json:"name" doc:"Display name" example:"Ada Lovelace"`
+ 	Email string `json:"email" doc:"Contact email" example:"ada@example.com"`
+ 	Age   int    `json:"age,omitempty" doc:"Age in years, if the user chose to share it"`
++	Nickname string `json:"nickname,omitempty" doc:"Optional nickname"`
+ }
+ 
+ // NewUser is the request body for creating a user.

@@ -1,0 +1,30 @@
+diff --git a/internal/api/users.go b/internal/api/users.go
+index 57b27d1..6870c7f 100644
+--- a/internal/api/users.go
++++ b/internal/api/users.go
+@@ -17,7 +17,6 @@ func init() { register(registerUsers) }
+ type User struct {
+ 	ID    int    `json:"id" doc:"Unique user ID" example:"1"`
+ 	Name  string `json:"name" doc:"Display name" example:"Ada Lovelace"`
+-	Email string `json:"email" doc:"Contact email" example:"ada@example.com"`
+ 	Age   int    `json:"age,omitempty" doc:"Age in years, if the user chose to share it"`
+ }
+ 
+@@ -55,7 +54,7 @@ type userStore struct {
+ 
+ func newUserStore() *userStore {
+ 	return &userStore{
+-		byID: map[int]User{1: {ID: 1, Name: "Ada Lovelace", Email: "ada@example.com"}},
++		byID: map[int]User{1: {ID: 1, Name: "Ada Lovelace"}},
+ 		next: 2,
+ 	}
+ }
+@@ -99,7 +98,7 @@ func registerUsers(api huma.API) {
+ 	}, func(ctx context.Context, in *CreateUserInput) (*CreateUserOutput, error) {
+ 		db.mu.Lock()
+ 		defer db.mu.Unlock()
+-		u := User{ID: db.next, Name: in.Body.Name, Email: in.Body.Email}
++		u := User{ID: db.next, Name: in.Body.Name}
+ 		db.byID[u.ID] = u
+ 		db.next++
+ 		return &CreateUserOutput{Body: u}, nil
