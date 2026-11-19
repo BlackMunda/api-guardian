@@ -1,0 +1,26 @@
+name: Guardian (spec file)
+
+# FILE MODE: the OpenAPI spec is a committed file.
+on:
+  pull_request:
+    paths:
+      - "api/openapi.yaml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  api-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # we need the base branch's history to read the old spec
+
+      # In this repo the action lives at the root, hence "./".
+      # In another repo you would write: uses: <owner>/guardian@v1
+      - uses: ./
+        with:
+          spec-path: api/openapi.yaml
+          name: spec-file

@@ -1,0 +1,27 @@
+name: Guardian (demo API)
+
+# GENERATE MODE: the spec is generated from the Go code by `go run ./cmd/api openapi`,
+# on the base branch and on the PR. Nobody edits a YAML file, so the spec cannot drift
+# from the code, and a code change that breaks clients is caught.
+on:
+  pull_request:
+    paths:
+      - "demo/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  api-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed to check out the base commit next to the PR
+
+      - uses: ./
+        with:
+          spec-command: go run ./cmd/api openapi
+          working-directory: demo
+          name: demo-api
